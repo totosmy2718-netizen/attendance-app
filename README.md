@@ -30,7 +30,7 @@ erDiagram
         timestamp updated_at
     }
 
-    breaks {
+    attendance_breaks {
         bigint id PK
         bigint attendance_id FK
         datetime break_start_at
@@ -68,11 +68,11 @@ erDiagram
         string remember_token
         timestamp created_at
         timestamp updated_at
-        boolean is_admin
+        boolean admin_status
     }
 
 
-    attendances ||--o{ breaks : "has many"
+    attendances ||--o{ attendance_breaks : "has many"
     attendances ||--o{ correction_requests : "has many"
     users ||--o{ attendances : "has many"
     correction_requests ||--o{ correction_request_breaks : "has many"
