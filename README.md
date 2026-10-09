@@ -68,7 +68,7 @@ erDiagram
         string remember_token
         timestamp created_at
         timestamp updated_at
-        boolean is_admin
+        boolean admin_status
     }
 
 
