@@ -13,6 +13,11 @@ Route::middleware('auth')->group(function () {
         AttendanceController::class,
         'store',
     ]);
+
+    Route::get('/attendance/list', [
+        AttendanceController::class,
+        'list',
+    ]);
 });
 
 

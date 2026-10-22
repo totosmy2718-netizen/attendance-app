@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AttendanceRequest;
 use App\Models\AttendanceBreak;
 use Illuminate\Http\Request;
-use App\Models\User;
 use App\Models\Attendance;
+use Illuminate\Support\Carbon;
 
 class AttendanceController extends Controller
 {
@@ -131,5 +131,111 @@ class AttendanceController extends Controller
             ]);
         }
         return redirect('/attendance');
+    }
+
+    public function list(Request $request)
+    {
+        $request->validate([
+            'date' => ['sometimes', 'required', 'date_format:Y-m'],
+        ]);
+
+        $month = $request->input('date', now()->format('Y-m'));
+        $date = Carbon::parse($month . '-01');
+
+        $previousMonth = $date->copy()->subMonth()->format('Y-m');
+        $nextMonth = $date->copy()->addMonth()->format('Y-m');
+
+        $user = auth()->user();
+
+        $attendances = $user->attendances()
+            ->with('attendance_breaks')
+            ->whereYear('work_date', $date->year)
+            ->whereMonth('work_date', $date->month)
+            ->orderBy('work_date')->get();
+
+        $endOfMonth = $date->copy()->endOfMonth();
+
+        $formattedAttendanceRecords = [];
+        $currentDate = $date->copy();
+
+        while ($currentDate->lte($endOfMonth)) {
+
+            $attendance = $attendances->first(function ($record) use ($currentDate) {
+                return $record->work_date->toDateString() === $currentDate->toDateString();
+            });
+
+            if ($attendance === null) {
+                $formattedAttendanceRecords[] = [
+                    'id' => null,
+                    'date' => $currentDate->locale('ja')->isoFormat('MM/DD(ddd)'),
+                    'clock_in' => '',
+                    'clock_out' => '',
+                    'total_break_time' => '',
+                    'total_time' => '',
+                ];
+            } else {
+                // 休憩時間を秒で合計する
+                $totalBreakSeconds = 0;
+                $hasUnfinishedBreak = false;
+
+                foreach ($attendance->attendance_breaks as $break) {
+                    if ($break->break_end_at === null) {
+                        $hasUnfinishedBreak = true;
+                        continue;
+                    }
+
+                    $totalBreakSeconds += $break->break_start_at
+                        ->diffInSeconds($break->break_end_at);
+                }
+
+                $totalBreakTime = '';
+                $totalTime = '';
+
+                // 休憩がすべて終了している場合
+                if (!$hasUnfinishedBreak) {
+                    $breakHours = intdiv($totalBreakSeconds, 3600);
+                    $breakMinutes = intdiv($totalBreakSeconds % 3600, 60);
+
+                    $totalBreakTime = sprintf(
+                        '%02d:%02d:00',
+                        $breakHours,
+                        $breakMinutes
+                    );
+
+                    // 退勤済みなら、実働時間も計算する
+                    if ($attendance->clock_out_at !== null) {
+                        $totalSeconds = $attendance->clock_in_at
+                            ->diffInSeconds($attendance->clock_out_at)
+                            - $totalBreakSeconds;
+
+                        $workHours = intdiv($totalSeconds, 3600);
+                        $workMinutes = intdiv($totalSeconds % 3600, 60);
+
+                        $totalTime = sprintf(
+                            '%02d:%02d:00',
+                            $workHours,
+                            $workMinutes
+                        );
+                    }
+                }
+
+                $formattedAttendanceRecords[] = [
+                    'id' => $attendance->id,
+                    'date' => $currentDate->locale('ja')->isoFormat('MM/DD(ddd)'),
+                    'clock_in' => $attendance->clock_in_at->format('H:i'),
+                    'clock_out' => $attendance->clock_out_at?->format('H:i') ?? '',
+                    'total_break_time' => $totalBreakTime,
+                    'total_time' => $totalTime,
+                ];
+            }
+
+            $currentDate->addDay();
+        }
+        return view('user.user-attendance-list', compact(
+            'date',
+            'previousMonth',
+            'nextMonth',
+            'formattedAttendanceRecords'
+        ));
     }
 }
