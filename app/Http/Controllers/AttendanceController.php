@@ -238,4 +238,10 @@ class AttendanceController extends Controller
             'formattedAttendanceRecords'
         ));
     }
+
+    public function show($id)
+    {
+        $user = auth()->user();
+        $attendance = $user->attendances()->findOrFail($id);
+    }
 }
