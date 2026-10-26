@@ -18,10 +18,13 @@ Route::middleware('auth')->group(function () {
         AttendanceController::class,
         'list',
     ]);
+
+    Route::get('/attendance/{id}', [
+        AttendanceController::class,
+        'show',
+    ])->whereNumber('id');
+
 });
-
-
-
 
 Route::get('/admin/login', function () {
     return view('admin.admin-login');
