@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CorrectionRequestController;
 use App\Http\Controllers\AttendanceController;
 
 Route::middleware('auth')->group(function () {
@@ -22,6 +23,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/attendance/{id}', [
         AttendanceController::class,
         'show',
+    ])->whereNumber('id');
+
+    Route::post('/attendance/{id}', [
+        CorrectionRequestController::class,
+        'store',
     ])->whereNumber('id');
 
 });

@@ -141,4 +141,122 @@ class AttendanceDetailTest extends TestCase
         $response->assertSee('12:00');
         $response->assertSee('12:30');
     }
+
+    public function test_出勤時間が退勤時間より後になっている場合、エラーメッセージが表示されるか(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-26 17:30:00'));
+
+        $user = User::factory()->create([
+            'admin_status' => false,
+        ]);
+
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'work_date' => '2026-10-22',
+            'clock_in_at' => '2026-10-22 09:00:00',
+            'clock_out_at' => '2026-10-22 17:00:00',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post('/attendance/' . $attendance->id, [
+                'new_clock_in' => '09:00',
+                'new_clock_out' => '08:00',
+                'comment' => '打刻修正のため',
+            ]);
+
+        $response->assertSessionHasErrors([
+            'new_clock_out' => '出勤時間もしくは退勤時間が不適切な値です',
+        ]);
+    }
+
+    public function test_休憩開始時刻が退勤時刻より後になっている場合、エラーメッセージが表示されるか(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-26 17:30:00'));
+
+        $user = User::factory()->create([
+            'admin_status' => false,
+        ]);
+
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'work_date' => '2026-10-22',
+            'clock_in_at' => '2026-10-22 09:00:00',
+            'clock_out_at' => '2026-10-22 17:00:00',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post('/attendance/' . $attendance->id, [
+                'new_clock_in' => '09:00',
+                'new_clock_out' => '17:00',
+                'new_break_in' => ['18:00'],
+                'new_break_out' => ['18:30'],
+                'comment' => '打刻修正のため',
+            ]);
+
+        $response->assertSessionHasErrors([
+            'new_break_in.0' => '休憩時間が不適切な値です',
+        ]);
+    }
+
+
+    public function test_休憩終了時刻が退勤時刻より後になっている場合、エラーメッセージが表示されるか(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-26 17:30:00'));
+
+        $user = User::factory()->create([
+            'admin_status' => false,
+        ]);
+
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'work_date' => '2026-10-22',
+            'clock_in_at' => '2026-10-22 09:00:00',
+            'clock_out_at' => '2026-10-22 17:00:00',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post('/attendance/' . $attendance->id, [
+                'new_clock_in' => '09:00',
+                'new_clock_out' => '17:00',
+                'new_break_in' => ['16:00'],
+                'new_break_out' => ['18:00'],
+                'comment' => '打刻修正のため',
+            ]);
+
+
+        $response->assertSessionHasErrors([
+            'new_break_out.0' => '休憩時間もしくは退勤時間が不適切な値です',
+        ]);
+    }
+
+
+
+    public function test_備考が未入力の場合エラーメッセージが表示されるか(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-26 17:30:00'));
+
+        $user = User::factory()->create([
+            'admin_status' => false,
+        ]);
+
+        $attendance = Attendance::create([
+            'user_id' => $user->id,
+            'work_date' => '2026-10-22',
+            'clock_in_at' => '2026-10-22 09:00:00',
+            'clock_out_at' => '2026-10-22 17:00:00',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post('/attendance/' . $attendance->id, [
+                'new_clock_in' => '09:00',
+                'new_clock_out' => '17:00',
+                'new_break_in' => ['16:00'],
+                'new_break_out' => ['16:30'],
+                'comment' => '',
+            ]);
+
+        $response->assertSessionHasErrors([
+            'comment' => '備考を記入してください',
+        ]);
+    }
 }
