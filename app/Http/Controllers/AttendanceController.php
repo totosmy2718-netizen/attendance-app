@@ -238,4 +238,60 @@ class AttendanceController extends Controller
             'formattedAttendanceRecords'
         ));
     }
+
+    public function show($id)
+    {
+        $user = auth()->user();
+        $attendance = $user->attendances()
+            ->with('attendance_breaks')
+            ->findOrFail($id);
+
+        $application = $attendance->correction_requests()
+            ->where('status', 'pending')
+            ->first();
+
+
+        //承認待ち申請がない場合の表示
+        if ($application === null) {
+            $breaks = [];
+
+            $clockIn = $attendance->clock_in_at->format('H:i');
+            $clockOut = $attendance->clock_out_at?->format('H:i');
+            $comment = '';
+
+            foreach ($attendance->attendance_breaks as $break) {
+                $breaks[] = [
+                    'break_in' => $break->break_start_at->format('H:i'),
+                    'break_out' => $break->break_end_at?->format('H:i') ?? '',
+                ];
+            }
+
+            //承認待ちがある場合
+        } else {
+            $clockIn = $application->requested_clock_in_at->format('H:i');
+            $clockOut = $application->requested_clock_out_at->format('H:i') ?? '';
+            $comment = $application->memo;
+
+            $breaks = [];
+            foreach ($application->correction_request_breaks as $break) {
+                $breaks[] = [
+                    'break_in' => $break->requested_break_start_at->format('H:i'),
+                    'break_out' => $break->requested_break_end_at->format('H:i'),
+                ];
+            }
+        }
+
+        $data = [
+            'id' => $attendance->id,
+            'year' => $attendance->work_date->format('Y年'),
+            'date' => $attendance->work_date->format('n月j日'),
+            'clock_in' => $clockIn,
+            'clock_out' => $clockOut,
+            'comment' => $comment,
+            'application' => $application,
+            'breaks' => $breaks,
+        ];
+
+        return view('user.user-detail', compact('user', 'data'));
+    }
 }
