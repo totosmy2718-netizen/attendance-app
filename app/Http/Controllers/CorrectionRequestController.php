@@ -70,4 +70,50 @@ class CorrectionRequestController extends Controller
         });
         return redirect('/attendance/' . $attendance->id);
     }
+
+    public function index()
+    {
+        /**
+         * 修正申請の承認待ちと承認済みの表示のための取得
+         */
+        $user = auth()->user();
+        $applications = CorrectionRequest::whereHas('attendance', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->with('attendance')->get();
+
+        $formattedApplications = [];
+        foreach ($applications as $application) {
+            if ($application->status === 'pending') {
+                $approvalStatus = '承認待ち';
+            } else {
+                $approvalStatus = '承認済み';
+            }
+
+            $formattedApplications[] = [
+                'id' => $application->id,
+                'approval_status' => $approvalStatus,
+                'date' => $application->attendance->work_date->format('Y/m/d'),
+                'application_date' => $application->created_at->format('Y/m/d'),
+                'comment' => $application->memo,
+            ];
+        }
+
+        return view(
+            'user.user-application-list',
+            compact('user', 'formattedApplications')
+        );
+
+    }
+
+    public function show($id)
+    {
+        $user = auth()->user();
+        $application = CorrectionRequest::whereHas('attendance', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })
+            ->findOrFail($id);
+
+        return redirect('/attendance/' . $application->attendance_id);
+    }
 }

@@ -30,6 +30,16 @@ Route::middleware('auth')->group(function () {
         'store',
     ])->whereNumber('id');
 
+    Route::get('/stamp_correction_request/list', [
+        CorrectionRequestController::class,
+        'index',
+    ]);
+
+    Route::get('/application/{id}', [
+        CorrectionRequestController::class,
+        'show',
+    ]);
+
 });
 
 Route::get('/admin/login', function () {
