@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CorrectionRequestController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/attendance', [
@@ -52,11 +53,10 @@ Route::post('/admin/login', [
     'store',
 ])->middleware(['guest', 'throttle:login']);
 
-Route::get('/admin/attendance/list', function () {
-    abort_unless(auth()->user()->admin_status, 403);
-
-    return view('attendance-test');
-})->middleware('auth');
+Route::get('/admin/attendance/list', [
+    AdminAttendanceController::class,
+    'index',
+])->middleware('auth');
 
 Route::get('/', function () {
     return redirect('/login');
