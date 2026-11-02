@@ -21,8 +21,16 @@ Route::middleware('auth')->group(function () {
         'list',
     ]);
 
-    Route::get('/attendance/{id}', [
-        AttendanceController::class,
+    Route::get('/attendance/{id}', function ($id) {
+        if (auth()->user()->admin_status) {
+            return redirect('/admin/attendance/' . $id);
+        }
+
+        return app(AttendanceController::class)->show($id);
+    })->whereNumber('id');
+
+    Route::get('/admin/attendance/{id}', [
+        AdminAttendanceController::class,
         'show',
     ])->whereNumber('id');
 
