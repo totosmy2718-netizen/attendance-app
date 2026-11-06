@@ -21,15 +21,33 @@ Route::middleware('auth')->group(function () {
         'list',
     ]);
 
-    Route::get('/attendance/{id}', [
-        AttendanceController::class,
+    Route::get('/attendance/{id}', function ($id) {
+        if (auth()->user()->admin_status) {
+            return redirect('/admin/attendance/' . $id);
+        }
+
+        return app(AttendanceController::class)->show($id);
+    })->whereNumber('id');
+
+
+    Route::get('/admin/attendance/{id}', [
+        AdminAttendanceController::class,
         'show',
     ])->whereNumber('id');
 
-    Route::post('/attendance/{id}', [
-        CorrectionRequestController::class,
-        'store',
-    ])->whereNumber('id');
+    Route::post('/attendance/{id}', function ($id) {
+        if (auth()->user()->admin_status) {
+            return app()->call(
+                [app(AdminAttendanceController::class), 'update'],
+                ['id' => $id]
+            );
+        }
+
+        return app()->call(
+            [app(CorrectionRequestController::class), 'store'],
+            ['id' => $id]
+        );
+    })->whereNumber('id');
 
     Route::get('/stamp_correction_request/list', [
         CorrectionRequestController::class,
@@ -39,6 +57,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/application/{id}', [
         CorrectionRequestController::class,
         'show',
+    ]);
+
+    Route::post('/admin/logout', [
+        \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
+        'destroy',
     ]);
 
 });

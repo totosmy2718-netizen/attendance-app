@@ -21,9 +21,7 @@ class CorrectionRequestController extends Controller
             return redirect('/attendance/' . $attendance->id);
         }
 
-        /**
-         * 勤務日と入力された時刻を結合
-         */
+        // 勤務日と入力された時刻を結合
         $workDate = $attendance->work_date->toDateString();
         $newClockIn = $request->input('new_clock_in');
         $clockIn = $workDate . ' ' . $newClockIn;
@@ -32,16 +30,10 @@ class CorrectionRequestController extends Controller
         $clockOut = $workDate . ' ' . $newClockOut;
 
 
-        /**
-         * 修正申請と紐づく休憩を全部保存か不備があれば全部取り消す
-         */
-
+        // 修正申請と紐づく休憩を全部保存か不備があれば全部取り消す
         DB::transaction(function () use ($attendance, $clockIn, $clockOut, $request, $workDate) {
 
-
-            /**
-             * 修正申請勤怠を保存
-             */
+            // 修正申請勤怠を保存
             $application = CorrectionRequest::create([
                 'attendance_id' => $attendance->id,
                 'requested_clock_in_at' => $clockIn,

@@ -28,6 +28,7 @@ erDiagram
         datetime clock_out_at
         timestamp created_at
         timestamp updated_at
+        text memo
     }
 
     attendance_breaks {

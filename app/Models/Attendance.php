@@ -14,6 +14,7 @@ class Attendance extends Model
         'work_date',
         'clock_in_at',
         'clock_out_at',
+        'memo',
     ];
     protected $casts = [
         'work_date' => 'date',

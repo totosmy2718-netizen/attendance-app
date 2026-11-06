@@ -22,11 +22,7 @@ class AttendanceController extends Controller
             $status = '勤務外';
         } elseif ($attendance->clock_out_at !== null) {
             $status = '退勤済';
-        } elseif (
-            $attendance->attendance_breaks()
-                ->whereNull('break_end_at')
-                ->exists()
-        ) {
+        } elseif ($attendance->attendance_breaks()->whereNull('break_end_at')->exists()) {
             $status = '休憩中';
         } else {
             $status = '出勤中';
@@ -56,7 +52,7 @@ class AttendanceController extends Controller
             ->whereDate('work_date', $today)
             ->first();
 
-        //出勤打刻
+        // 出勤打刻
         if ($request->input('action') === 'clock_in') {
             if ($attendance !== null) {
                 return redirect('/attendance');
@@ -66,7 +62,7 @@ class AttendanceController extends Controller
                 'work_date' => $today,
                 'clock_in_at' => now(),
             ]);
-            //休憩打刻
+            // 休憩打刻
         } elseif ($request->input('action') === 'break_in') {
             if ($attendance === null) {
                 return redirect('/attendance');
@@ -87,7 +83,7 @@ class AttendanceController extends Controller
                 'attendance_id' => $attendance->id,
                 'break_start_at' => now(),
             ]);
-            //休憩終了打刻
+            // 休憩終了打刻
         } elseif ($request->input('action') === 'break_out') {
             if ($attendance === null) {
                 return redirect('/attendance');
@@ -110,7 +106,7 @@ class AttendanceController extends Controller
             ]);
 
 
-            //退勤打刻
+            // 退勤打刻
         } elseif ($request->input('action') === 'clock_out') {
             if ($attendance === null) {
                 return redirect('/attendance');
@@ -251,13 +247,13 @@ class AttendanceController extends Controller
             ->first();
 
 
-        //承認待ち申請がない場合の表示
+        // 承認待ち申請がない場合の表示
         if ($application === null) {
             $breaks = [];
 
             $clockIn = $attendance->clock_in_at->format('H:i');
             $clockOut = $attendance->clock_out_at?->format('H:i');
-            $comment = '';
+            $comment = $attendance->memo ?? '';
 
             foreach ($attendance->attendance_breaks as $break) {
                 $breaks[] = [
@@ -266,7 +262,7 @@ class AttendanceController extends Controller
                 ];
             }
 
-            //承認待ちがある場合
+            // 承認待ちがある場合
         } else {
             $clockIn = $application->requested_clock_in_at->format('H:i');
             $clockOut = $application->requested_clock_out_at->format('H:i') ?? '';
