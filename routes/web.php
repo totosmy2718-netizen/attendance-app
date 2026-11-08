@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CorrectionRequestController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
+use App\Http\Controllers\Admin\StaffController;
 
 Route::middleware('auth')->group(function () {
     Route::get('/attendance', [
@@ -63,6 +64,16 @@ Route::middleware('auth')->group(function () {
         \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
         'destroy',
     ]);
+
+    Route::get('/admin/staff/list', [
+        StaffController::class,
+        'index',
+    ]);
+
+    Route::get('/admin/attendance/staff/{id}', [
+        StaffController::class,
+        'show',
+    ])->whereNumber('id');
 
 });
 
