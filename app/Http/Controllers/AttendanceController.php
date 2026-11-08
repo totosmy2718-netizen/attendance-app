@@ -129,6 +129,9 @@ class AttendanceController extends Controller
         return redirect('/attendance');
     }
 
+    /**
+     * 月次勤怠一覧
+     */
     public function list(Request $request)
     {
         $request->validate([
