@@ -10,6 +10,9 @@ use Illuminate\Support\Carbon;
 
 class AttendanceController extends Controller
 {
+    /**
+     * ログインユーザーの当日の勤務状態・現在日時を取得し、打刻画面を表示
+     */
     public function index()
     {
         $user = auth()->user();
@@ -43,6 +46,9 @@ class AttendanceController extends Controller
 
     }
 
+    /**
+     * ログインユーザーの出勤・休憩開始・休憩終了・退勤を打刻
+     */
     public function store(AttendanceRequest $request)
     {
         $user = auth()->user();
@@ -130,7 +136,7 @@ class AttendanceController extends Controller
     }
 
     /**
-     * 月次勤怠一覧
+     * 月次勤怠一覧を表示
      */
     public function list(Request $request)
     {
@@ -238,6 +244,10 @@ class AttendanceController extends Controller
         ));
     }
 
+
+    /**
+     * ログインユーザーの勤怠の詳細を表示
+     */
     public function show($id)
     {
         $user = auth()->user();

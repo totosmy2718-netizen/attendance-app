@@ -9,6 +9,9 @@ use App\Http\Requests\CorrectionRequest as CorrectionFormRequest;
 
 class CorrectionRequestController extends Controller
 {
+    /**
+     * ログインユーザーの勤怠に対する修正申請と申請休憩を保存
+     */
     public function store(CorrectionFormRequest $request, $id)
     {
         $user = auth()->user();
@@ -43,9 +46,7 @@ class CorrectionRequestController extends Controller
             ]);
 
 
-            /**
-             * 修正申請休憩を取得と保存
-             */
+            // 修正申請休憩を取得と保存
             foreach ($request->input('new_break_in', []) as $index => $breakIn) {
                 $breakOut = $request->input('new_break_out.' . $index);
 
@@ -63,11 +64,11 @@ class CorrectionRequestController extends Controller
         return redirect('/attendance/' . $attendance->id);
     }
 
+    /**
+     * ログインユーザーの修正申請を取得し、申請一覧画面を表示
+     */
     public function index()
     {
-        /**
-         * 修正申請の承認待ちと承認済みの表示のための取得
-         */
         $user = auth()->user();
         $applications = CorrectionRequest::whereHas('attendance', function ($query) use ($user) {
             $query->where('user_id', $user->id);
@@ -97,7 +98,9 @@ class CorrectionRequestController extends Controller
         );
 
     }
-
+    /**
+     * ログインユーザーの修正申請に紐づく勤怠詳細画面へ遷移
+     */
     public function show($id)
     {
         $user = auth()->user();
