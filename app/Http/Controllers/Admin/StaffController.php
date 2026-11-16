@@ -6,12 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Models\Attendance;
+use Illuminate\Contracts\View\View;
 class StaffController extends Controller
 {
     /**
-     * スタッフ一覧画面
+     * 一般ユーザーの氏名・メールアドレスをスタッフ一覧に表示する。
+     *
+     * @return View スタッフ一覧画面
      */
-    public function index()
+    public function index(): View
     {
         abort_unless(auth()->user()->admin_status, 403);
 
@@ -22,9 +26,13 @@ class StaffController extends Controller
     }
 
     /**
-     * スタッフ別勤怠一覧画面
+     * 指定したスタッフの月次勤怠一覧を表示する。
+     *
+     * @param Request $request 表示対象月を受け取るリクエスト
+     * @param int $id 表示対象のスタッフID
+     * @return View スタッフ別月次勤怠一覧画面
      */
-    public function show(Request $request, $id)
+    public function show(Request $request, int $id): View
     {
         abort_unless(auth()->user()->admin_status, 403);
 
@@ -52,10 +60,12 @@ class StaffController extends Controller
         $currentDate = $date->copy();
 
         while ($currentDate->lte($endOfMonth)) {
-            $attendance = $attendances->first(function ($record) use ($currentDate) {
-                return $record->work_date->toDateString()
-                    === $currentDate->toDateString();
-            });
+            $attendance = $attendances->first(
+                function (Attendance $record) use ($currentDate): bool {
+                    return $record->work_date->toDateString()
+                        === $currentDate->toDateString();
+                }
+            );
 
             if ($attendance === null) {
                 $formattedAttendanceRecords[] = [

@@ -7,7 +7,9 @@ use Illuminate\Foundation\Http\FormRequest;
 class RegisterRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * 会員登録リクエストの実行を許可する。
+     *
+     * @return bool 実行を許可する場合はtrue
      */
     public function authorize(): bool
     {
@@ -15,9 +17,9 @@ class RegisterRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * 名前・メールアドレス・パスワードの入力ルールを定義する。
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, string>> 入力項目ごとの検証ルール
      */
     public function rules(): array
     {
@@ -28,7 +30,12 @@ class RegisterRequest extends FormRequest
         ];
     }
 
-    public function messages()
+    /**
+     * 会員登録時の入力エラーに対応する日本語メッセージを定義する。
+     *
+     * @return array<string, string> 検証ルールごとのエラーメッセージ
+     */
+    public function messages(): array
     {
         return [
             'name.required' => 'お名前を入力してください',

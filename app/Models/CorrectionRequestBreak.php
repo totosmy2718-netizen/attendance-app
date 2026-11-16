@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CorrectionRequestBreak extends Model
 {
@@ -19,7 +20,12 @@ class CorrectionRequestBreak extends Model
         'requested_break_end_at' => 'datetime',
     ];
 
-    public function correction_request()
+    /**
+     * この申請休憩が所属する修正申請へのリレーションを定義する。
+     *
+     * @return BelongsTo 修正申請へのリレーション
+     */
+    public function correction_request(): BelongsTo
     {
         return $this->belongsTo(CorrectionRequest::class);
     }

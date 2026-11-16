@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
@@ -44,7 +45,12 @@ class User extends Authenticatable
         'admin_status' => 'boolean',
     ];
 
-    public function attendances()
+    /**
+     * このユーザーに紐づく勤怠のリレーションを定義する。
+     *
+     * @return HasMany 勤怠への1対多のリレーション
+     */
+    public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class);
     }

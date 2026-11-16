@@ -7,13 +7,18 @@ use App\Models\AttendanceBreak;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Carbon;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use App\Models\CorrectionRequestBreak;
 
 class AttendanceController extends Controller
 {
     /**
-     * ログインユーザーの当日の勤務状態・現在日時を取得し、打刻画面を表示
+     * 当日の勤務状態・現在日時を取得し、打刻画面を表示する。
+     *
+     * @return View 勤怠登録画面
      */
-    public function index()
+    public function index(): View
     {
         $user = auth()->user();
 
@@ -47,9 +52,12 @@ class AttendanceController extends Controller
     }
 
     /**
-     * ログインユーザーの出勤・休憩開始・休憩終了・退勤を打刻
+     * ログインユーザーの出勤・休憩開始・休憩終了・退勤を打刻する。
+     *
+     * @param AttendanceRequest $request 検証済みの打刻リクエスト
+     * @return RedirectResponse 勤怠登録画面へのリダイレクト
      */
-    public function store(AttendanceRequest $request)
+    public function store(AttendanceRequest $request): RedirectResponse
     {
         $user = auth()->user();
         $today = now()->toDateString();
@@ -136,9 +144,12 @@ class AttendanceController extends Controller
     }
 
     /**
-     * 月次勤怠一覧を表示
+     * 指定月の本人の勤怠を取得し、月次勤怠一覧を表示する。
+     *
+     * @param Request $request 表示対象月を受け取るリクエスト
+     * @return View 月次勤怠一覧画面
      */
-    public function list(Request $request)
+    public function list(Request $request): View
     {
         $request->validate([
             'date' => ['sometimes', 'required', 'date_format:Y-m'],
@@ -165,9 +176,12 @@ class AttendanceController extends Controller
 
         while ($currentDate->lte($endOfMonth)) {
 
-            $attendance = $attendances->first(function ($record) use ($currentDate) {
-                return $record->work_date->toDateString() === $currentDate->toDateString();
-            });
+            $attendance = $attendances->first(
+                function (Attendance $record) use ($currentDate): bool {
+                    return $record->work_date->toDateString()
+                        === $currentDate->toDateString();
+                }
+            );
 
             if ($attendance === null) {
                 $formattedAttendanceRecords[] = [
@@ -180,18 +194,22 @@ class AttendanceController extends Controller
                 ];
             } else {
                 // 休憩時間を秒で合計する
-                $totalBreakSeconds = 0;
-                $hasUnfinishedBreak = false;
+                $breaks = $attendance->attendance_breaks;
 
-                foreach ($attendance->attendance_breaks as $break) {
-                    if ($break->break_end_at === null) {
-                        $hasUnfinishedBreak = true;
-                        continue;
+                // 終了していない休憩があるか確認する
+                $hasUnfinishedBreak = $breaks->contains(
+                    function (AttendanceBreak $break): bool {
+                        return $break->break_end_at === null;
                     }
+                );
 
-                    $totalBreakSeconds += $break->break_start_at
-                        ->diffInSeconds($break->break_end_at);
-                }
+                // 終了した休憩だけを対象に、休憩時間を秒で合計する
+                $totalBreakSeconds = $breaks
+                    ->whereNotNull('break_end_at')
+                    ->sum(function (AttendanceBreak $break): int {
+                        return (int) $break->break_start_at
+                            ->diffInSeconds($break->break_end_at);
+                    });
 
                 $totalBreakTime = '';
                 $totalTime = '';
@@ -246,9 +264,14 @@ class AttendanceController extends Controller
 
 
     /**
-     * ログインユーザーの勤怠の詳細を表示
+     * 本人の勤怠詳細を表示する。
+     * 承認待ちの修正申請がある場合は、申請内容を表示する。
+     *
+     * @param int $id 表示対象の勤怠ID
+     * @return View 勤怠詳細画面
      */
-    public function show($id)
+
+    public function show(int $id): View
     {
         $user = auth()->user();
         $attendance = $user->attendances()
@@ -262,18 +285,19 @@ class AttendanceController extends Controller
 
         // 承認待ち申請がない場合の表示
         if ($application === null) {
-            $breaks = [];
 
             $clockIn = $attendance->clock_in_at->format('H:i');
             $clockOut = $attendance->clock_out_at?->format('H:i');
             $comment = $attendance->memo ?? '';
 
-            foreach ($attendance->attendance_breaks as $break) {
-                $breaks[] = [
-                    'break_in' => $break->break_start_at->format('H:i'),
-                    'break_out' => $break->break_end_at?->format('H:i') ?? '',
-                ];
-            }
+            $breaks = $attendance->attendance_breaks
+                ->map(function (AttendanceBreak $break): array {
+                    return [
+                        'break_in' => $break->break_start_at->format('H:i'),
+                        'break_out' => $break->break_end_at?->format('H:i') ?? '',
+                    ];
+                })
+                ->all();
 
             // 承認待ちがある場合
         } else {
@@ -281,13 +305,14 @@ class AttendanceController extends Controller
             $clockOut = $application->requested_clock_out_at->format('H:i') ?? '';
             $comment = $application->memo;
 
-            $breaks = [];
-            foreach ($application->correction_request_breaks as $break) {
-                $breaks[] = [
-                    'break_in' => $break->requested_break_start_at->format('H:i'),
-                    'break_out' => $break->requested_break_end_at->format('H:i'),
-                ];
-            }
+            $breaks = $application->correction_request_breaks
+                ->map(function (CorrectionRequestBreak $break): array {
+                    return [
+                        'break_in' => $break->requested_break_start_at->format('H:i'),
+                        'break_out' => $break->requested_break_end_at->format('H:i'),
+                    ];
+                })
+                ->all();
         }
 
         $data = [

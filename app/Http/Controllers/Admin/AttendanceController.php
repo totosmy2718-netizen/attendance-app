@@ -10,13 +10,18 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\AttendanceBreak;
 use App\Http\Requests\Admin\UpdateAttendanceRequest;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class AttendanceController extends Controller
 {
     /**
-     * 管理者日時勤怠一覧
+     * 指定日の全ユーザーの勤怠を取得し、日次勤怠一覧を表示する。
+     *
+     * @param Request $request 表示対象日を受け取るリクエスト
+     * @return View 管理者用の日次勤怠一覧画面
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         // 管理者かどうか確認
         abort_unless(auth()->user()->admin_status, 403);
@@ -98,9 +103,12 @@ class AttendanceController extends Controller
     }
 
     /**
-     * 管理者用勤怠詳細画面
+     * 指定した勤怠の詳細と修正入力欄を表示する。
+     *
+     * @param int $id 表示対象の勤怠ID
+     * @return View 管理者用の勤怠詳細画面
      */
-    public function show($id)
+    public function show(int $id): View
     {
         abort_unless(auth()->user()->admin_status, 403);
 
@@ -108,13 +116,14 @@ class AttendanceController extends Controller
 
         $user = $attendance->user;
 
-        $breaks = [];
-        foreach ($attendance->attendance_breaks as $break) {
-            $breaks[] = [
-                'break_in' => $break->break_start_at->format('H:i'),
-                'break_out' => $break->break_end_at?->format('H:i') ?? '',
-            ];
-        }
+        $breaks = $attendance->attendance_breaks
+            ->map(function (AttendanceBreak $break): array {
+                return [
+                    'break_in' => $break->break_start_at->format('H:i'),
+                    'break_out' => $break->break_end_at?->format('H:i') ?? '',
+                ];
+            })
+            ->all();
 
         $attendanceRecord = [
             'id' => $attendance->id,
@@ -133,9 +142,13 @@ class AttendanceController extends Controller
     }
 
     /**
-     * 管理者勤怠修正処理
+     * 管理者として勤怠の出退勤時刻・備考を更新し、休憩を置き換える。
+     *
+     * @param UpdateAttendanceRequest $request 検証済みの勤怠修正リクエスト
+     * @param int $id 修正対象の勤怠ID
+     * @return RedirectResponse 管理者用勤怠詳細画面へのリダイレクト
      */
-    public function update(UpdateAttendanceRequest $request, $id)
+    public function update(UpdateAttendanceRequest $request, int $id): RedirectResponse
     {
         $validated = $request->validated();
 
@@ -148,7 +161,7 @@ class AttendanceController extends Controller
         $newClockOut = $validated['new_clock_out'];
         $clockOut = $workDate . ' ' . $newClockOut;
 
-        DB::transaction(function () use ($attendance, $clockIn, $clockOut, $validated, $workDate) {
+        DB::transaction(function () use ($attendance, $clockIn, $clockOut, $validated, $workDate): void {
             $attendance->update([
                 'clock_in_at' => $clockIn,
                 'clock_out_at' => $clockOut,
