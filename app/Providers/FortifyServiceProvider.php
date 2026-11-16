@@ -55,6 +55,11 @@ class FortifyServiceProvider extends ServiceProvider
             return view('user.register');
         });
 
+        // メール認証の案内画面
+        Fortify::verifyEmailView(function (): \Illuminate\Contracts\View\View {
+            return view('auth.verify-email');
+        });
+
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())) . '|' . $request->ip());
