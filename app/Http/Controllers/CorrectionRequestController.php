@@ -6,13 +6,20 @@ use App\Models\CorrectionRequest;
 use Illuminate\Support\Facades\DB;
 use App\Models\CorrectionRequestBreak;
 use App\Http\Requests\CorrectionRequest as CorrectionFormRequest;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Database\Eloquent\Builder;
 
 class CorrectionRequestController extends Controller
 {
     /**
-     * ログインユーザーの勤怠に対する修正申請と申請休憩を保存
+     * 本人の勤怠に対する修正申請と申請休憩を保存する。
+     *
+     * @param CorrectionFormRequest $request 検証済みの修正申請リクエスト
+     * @param int $id 修正対象の勤怠ID
+     * @return RedirectResponse 勤怠詳細画面へのリダイレクト
      */
-    public function store(CorrectionFormRequest $request, $id)
+    public function store(CorrectionFormRequest $request, int $id): RedirectResponse
     {
         $user = auth()->user();
         $attendance = $user->attendances()->findOrFail($id);
@@ -34,7 +41,7 @@ class CorrectionRequestController extends Controller
 
 
         // 修正申請と紐づく休憩を全部保存か不備があれば全部取り消す
-        DB::transaction(function () use ($attendance, $clockIn, $clockOut, $request, $workDate) {
+        DB::transaction(function () use ($attendance, $clockIn, $clockOut, $request, $workDate): void {
 
             // 修正申請勤怠を保存
             $application = CorrectionRequest::create([
@@ -65,32 +72,35 @@ class CorrectionRequestController extends Controller
     }
 
     /**
-     * ログインユーザーの修正申請を取得し、申請一覧画面を表示
+     * 本人の修正申請を取得し、申請一覧画面を表示する。
+     *
+     * @return View 申請一覧画面
      */
-    public function index()
+    public function index(): View
     {
         $user = auth()->user();
-        $applications = CorrectionRequest::whereHas('attendance', function ($query) use ($user) {
+        $applications = CorrectionRequest::whereHas('attendance', function (Builder $query) use ($user): void {
             $query->where('user_id', $user->id);
         })
             ->with('attendance')->get();
 
-        $formattedApplications = [];
-        foreach ($applications as $application) {
-            if ($application->status === 'pending') {
-                $approvalStatus = '承認待ち';
-            } else {
-                $approvalStatus = '承認済み';
-            }
+        $formattedApplications = $applications
+            ->map(function (CorrectionRequest $application): array {
+                if ($application->status === 'pending') {
+                    $approvalStatus = '承認待ち';
+                } else {
+                    $approvalStatus = '承認済み';
+                }
 
-            $formattedApplications[] = [
-                'id' => $application->id,
-                'approval_status' => $approvalStatus,
-                'date' => $application->attendance->work_date->format('Y/m/d'),
-                'application_date' => $application->created_at->format('Y/m/d'),
-                'comment' => $application->memo,
-            ];
-        }
+                return [
+                    'id' => $application->id,
+                    'approval_status' => $approvalStatus,
+                    'date' => $application->attendance->work_date->format('Y/m/d'),
+                    'application_date' => $application->created_at->format('Y/m/d'),
+                    'comment' => $application->memo,
+                ];
+            })
+            ->all();
 
         return view(
             'user.user-application-list',
@@ -99,12 +109,15 @@ class CorrectionRequestController extends Controller
 
     }
     /**
-     * ログインユーザーの修正申請に紐づく勤怠詳細画面へ遷移
+     * 本人の申請IDに対応する勤怠詳細画面へ移動する。
+     *
+     * @param int $id 表示対象の修正申請ID
+     * @return RedirectResponse 勤怠詳細画面へのリダイレクト
      */
-    public function show($id)
+    public function show(int $id): RedirectResponse
     {
         $user = auth()->user();
-        $application = CorrectionRequest::whereHas('attendance', function ($query) use ($user) {
+        $application = CorrectionRequest::whereHas('attendance', function (Builder $query) use ($user): void {
             $query->where('user_id', $user->id);
         })
             ->findOrFail($id);

@@ -6,11 +6,21 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateAttendanceRequest extends FormRequest
 {
+    /**
+     * 管理者にのみ勤怠修正を許可する。
+     *
+     * @return bool 管理者ならtrue、それ以外はfalse
+     */
     public function authorize(): bool
     {
         return $this->user()?->admin_status ?? false;
     }
 
+    /**
+     * 修正する出退勤時刻・休憩時刻・備考の入力ルールを定義する。
+     *
+     * @return array<string, array<int, string>> 入力項目ごとの検証ルール
+     */
     public function rules(): array
     {
         return [
@@ -42,6 +52,11 @@ class UpdateAttendanceRequest extends FormRequest
         ];
     }
 
+    /**
+     * 勤怠修正時の入力エラーに対応する日本語メッセージを定義する。
+     *
+     * @return array<string, string> 検証ルールごとのエラーメッセージ
+     */
     public function messages(): array
     {
         return [
