@@ -5,30 +5,26 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use App\Models\AttendanceBreak;
 use App\Http\Requests\Admin\UpdateAttendanceRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use App\Http\Requests\AttendanceDateRequest;
 
 class AttendanceController extends Controller
 {
     /**
      * 指定日の全ユーザーの勤怠を取得し、日次勤怠一覧を表示する。
      *
-     * @param Request $request 表示対象日を受け取るリクエスト
+     * @param AttendanceDateRequest $request 表示対象日を受け取るリクエスト
      * @return View 管理者用の日次勤怠一覧画面
      */
-    public function index(Request $request): View
+    public function index(AttendanceDateRequest $request): View
     {
         // 管理者かどうか確認
         abort_unless(auth()->user()->admin_status, 403);
-
-        $request->validate([
-            'date' => ['sometimes', 'required', 'date_format:Y-m-d'],
-        ]);
 
         // 表示日と前日翌日を用意
         $selectedDate = $request->input('date', now()->toDateString());

@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use App\Models\Attendance;
 use Illuminate\Contracts\View\View;
+use App\Http\Requests\AttendanceMonthRequest;
+
 class StaffController extends Controller
 {
     /**
@@ -28,19 +29,15 @@ class StaffController extends Controller
     /**
      * 指定したスタッフの月次勤怠一覧を表示する。
      *
-     * @param Request $request 表示対象月を受け取るリクエスト
+     * @param AttendanceMonthRequest $request 表示対象月を受け取るリクエスト
      * @param int $id 表示対象のスタッフID
      * @return View スタッフ別月次勤怠一覧画面
      */
-    public function show(Request $request, int $id): View
+    public function show(AttendanceMonthRequest $request, int $id): View
     {
         abort_unless(auth()->user()->admin_status, 403);
 
         $user = User::where('admin_status', false)->findOrFail($id);
-
-        $request->validate([
-            'date' => ['sometimes', 'required', 'date_format:Y-m'],
-        ]);
 
         $month = $request->input('date', now()->format('Y-m'));
         $date = Carbon::parse($month . '-01');
