@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\CorrectionRequestController as AdminCorrectionRequestController;
 
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     // PG03：勤怠登録画面（一般ユーザー）
     Route::get('/attendance', [
         AttendanceController::class,
@@ -66,12 +66,6 @@ Route::middleware('auth')->group(function () {
         'show',
     ]);
 
-    // 画面IDなし：管理者のログアウト処理
-    Route::post('/admin/logout', [
-        \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
-        'destroy',
-    ]);
-
     // PG10：スタッフ一覧画面（管理者）
     Route::get('/admin/staff/list', [
         StaffController::class,
@@ -106,6 +100,12 @@ Route::middleware('auth')->group(function () {
         'approve',
     ])->whereNumber('id');
 });
+
+// 画面IDなし：管理者のログアウト処理
+Route::post('/admin/logout', [
+    \Laravel\Fortify\Http\Controllers\AuthenticatedSessionController::class,
+    'destroy',
+])->middleware('auth');
 
 // PG07：ログイン画面（管理者）
 Route::get('/admin/login', function () {
