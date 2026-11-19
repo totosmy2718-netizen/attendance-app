@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AttendanceRequest;
 use App\Models\AttendanceBreak;
-use Illuminate\Http\Request;
 use App\Models\Attendance;
 use Illuminate\Support\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use App\Models\CorrectionRequestBreak;
+use App\Http\Requests\AttendanceMonthRequest;
 
 class AttendanceController extends Controller
 {
@@ -146,15 +146,11 @@ class AttendanceController extends Controller
     /**
      * 指定月の本人の勤怠を取得し、月次勤怠一覧を表示する。
      *
-     * @param Request $request 表示対象月を受け取るリクエスト
+     * @param AttendanceMonthRequest $request 表示対象月を受け取るリクエスト
      * @return View 月次勤怠一覧画面
      */
-    public function list(Request $request): View
+    public function list(AttendanceMonthRequest $request): View
     {
-        $request->validate([
-            'date' => ['sometimes', 'required', 'date_format:Y-m'],
-        ]);
-
         $month = $request->input('date', now()->format('Y-m'));
         $date = Carbon::parse($month . '-01');
 
