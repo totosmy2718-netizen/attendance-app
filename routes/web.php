@@ -78,6 +78,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         'show',
     ])->whereNumber('id');
 
+    // PG11：スタッフ別月次勤怠のCSV出力
+    Route::post('/export', [
+        StaffController::class,
+        'export',
+    ]);
+
     // PG06・PG12：権限に応じた申請一覧の表示
     Route::get('/stamp_correction_request/list', function () {
         // PG12：申請一覧画面（管理者）

@@ -8,6 +8,8 @@ use Illuminate\Support\Carbon;
 use App\Models\Attendance;
 use Illuminate\Contracts\View\View;
 use App\Http\Requests\AttendanceMonthRequest;
+use App\Http\Requests\ExportAttendanceRequest;
+use Illuminate\Http\Response;
 
 class StaffController extends Controller
 {
@@ -45,6 +47,92 @@ class StaffController extends Controller
         $previousMonth = $date->copy()->subMonth()->format('Y-m');
         $nextMonth = $date->copy()->addMonth()->format('Y-m');
 
+        $formattedAttendanceRecords =
+            $this->buildMonthlyAttendanceRecords($user, $date);
+
+        return view('admin.staff-attendance-list', compact(
+            'user',
+            'date',
+            'previousMonth',
+            'nextMonth',
+            'formattedAttendanceRecords'
+        ));
+    }
+
+    /**
+     * 指定スタッフの選択月の勤怠をCSVで出力する。
+     *
+     * @param ExportAttendanceRequest $request CSV出力リクエスト
+     * @return Response CSVのダウンロードレスポンス
+     */
+
+    public function export(ExportAttendanceRequest $request): Response
+    {
+        $validated = $request->validated();
+
+        $user = User::where('admin_status', false)
+            ->findOrFail($validated['user_id']);
+
+        $date = Carbon::parse($validated['year_month'] . '-01');
+
+        $formattedAttendanceRecords =
+            $this->buildMonthlyAttendanceRecords($user, $date);
+
+        $handle = fopen('php://temp', 'r+');
+
+        fputcsv(
+            $handle,
+            ['日付', '出勤', '退勤', '休憩', '合計'],
+            ',',
+            '"',
+            ''
+        );
+        // 1日分ずつ勤怠データを作る
+        foreach ($formattedAttendanceRecords as $record) {
+            $breakTime = $record['total_break_time'] !== ''
+                ? Carbon::parse($record['total_break_time'])->format('G:i')
+                : '';
+
+            $workTime = $record['total_time'] !== ''
+                ? Carbon::parse($record['total_time'])->format('G:i')
+                : '';
+
+            fputcsv(
+                $handle,
+                [
+                    $record['date'],
+                    $record['clock_in'],
+                    $record['clock_out'],
+                    $breakTime,
+                    $workTime,
+                ],
+                ',',
+                '"',
+                ''
+            );
+        }
+        rewind($handle);
+
+        $csvData = stream_get_contents($handle);
+
+        fclose($handle);
+
+        $fileName = 'attendance_' . $user->id . '_' . $date->format('Y-m') . '.csv';
+
+        return response($csvData)
+            ->header('Content-Type', 'text/csv; charset=UTF-8')
+            ->header('Content-Disposition', 'attachment; filename="' . $fileName . '"');
+    }
+
+    /**
+     * 指定スタッフ・月の勤怠一覧データを作成する。
+     *
+     * @param User $user 対象スタッフ
+     * @param Carbon $date 対象月の初日
+     * @return array<int, array<string, int|string|null>> 日付ごとの勤怠データ
+     */
+    private function buildMonthlyAttendanceRecords(User $user, Carbon $date): array
+    {
         $attendances = $user->attendances()
             ->with('attendance_breaks')
             ->whereYear('work_date', $date->year)
@@ -129,12 +217,9 @@ class StaffController extends Controller
 
             $currentDate->addDay();
         }
-        return view('admin.staff-attendance-list', compact(
-            'user',
-            'date',
-            'previousMonth',
-            'nextMonth',
-            'formattedAttendanceRecords'
-        ));
+
+        return $formattedAttendanceRecords;
     }
+
+
 }
