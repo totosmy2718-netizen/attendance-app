@@ -6,6 +6,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendanceController;
 use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\Admin\CorrectionRequestController as AdminCorrectionRequestController;
+use App\Http\Controllers\AttendanceReportController;
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -25,6 +26,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/attendance/list', [
         AttendanceController::class,
         'list',
+    ]);
+
+    // マイ勤怠レポート画面（一般ユーザー）
+    Route::get('/attendance/report', [
+        AttendanceReportController::class,
+        'index',
     ]);
 
     // PG05・PG09：権限に応じた勤怠詳細への振り分け
